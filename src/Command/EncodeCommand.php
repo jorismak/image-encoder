@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\QualityStepper;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProcessHelper;
@@ -22,7 +23,9 @@ class EncodeCommand extends Command
     private ?string $augliExecutable = null;
     private ?string $ffmpegExecutable = null;
     private ?string $magickExecutable = null;
-    private ?string $avifdecExecutable = null;
+    // private ?string $avifdecExecutable = null;
+    private ?string $avifencExecutable = null;
+    private ?string $cjpegExecutable = null;
 
     private ?ProcessHelper $processHelper = null;
     private OutputInterface $output;
@@ -53,143 +56,35 @@ class EncodeCommand extends Command
         $this->ffmpegExecutable = $executableFinder->find('ffmpeg');
         $this->augliExecutable = $executableFinder->find('butteraugli_main.exe');
         $this->magickExecutable = $executableFinder->find('magick.exe');
-        $this->avifdecExecutable = $executableFinder->find('avifdec.exe');
+        // $this->avifdecExecutable = $executableFinder->find('avifdec.exe');
+        $this->avifencExecutable = $executableFinder->find('avifenc.exe');
+        $this->cjpegExecutable = $executableFinder->find('cjpeg-static.exe');
 
-        // $this->findCrfForDistance($inputFilename);
+        // $stepper = new QualityStepper(5.0, 1.0, 40.0, 1.0, QualityStepper::INCREASE);
+        // while ($stepper->iterate(function (float $value) use ($inputFilename) {
+        //     $this->avifFFEncode($inputFilename, 'distance.avif', (int) $value, 1, 1, 13, true);
 
-        for ($transfer = 1; $transfer <= 18; $transfer++) {
-            if ($transfer === 2) {
-                continue;
-            }
+        //     return $this->butterAugliScore($inputFilename, 'distance.avif');
+        // })) {
+        // }
 
-            if ($transfer === 3) {
-                continue;
-            }
-            if ($transfer === 12) {
-                continue;
-            }
-            if ($transfer === 17) {
-                continue;
-            }
+        // $this->io->info(sprintf('Value we ended up with: %d %d', (int) $stepper->minValueReached, (int) $stepper->maxValue));
 
-            for ($primaries = 1; $primaries <= 12; $primaries++) {
-                if ($primaries === 2) {
-                    continue;
-                }
+        $stepper = new QualityStepper(5.0, 1.0, 99.0, 50.0, QualityStepper::DECREASE);
+        while ($stepper->iterate(function (float $value) use ($inputFilename) {
+            // $this->avifEncEncode($inputFilename, 'distance.avif', (int) $value);
+            $this->mozjpegEncode($inputFilename, 'distance.jpeg', (int) $value);
 
-                if ($primaries === 3) {
-                    continue;
-                }
-
-                if ($primaries === 10) {
-                    continue;
-                }
-
-                for ($matrix = 1; $matrix <= 10; $matrix++) {
-                    if ($matrix === 2) {
-                        continue;
-                    }
-
-                    if ($matrix === 3) {
-                        continue;
-                    }
-
-                    $filename = sprintf('test_%d_%d_%d_full.avif', $transfer, $primaries, $matrix);
-                    $this->io->writeln(sprintf('Trying transfer = %d, primaries = %d, matrix = %d, full range', $transfer, $primaries, $matrix));
-                    $this->avifEncode($inputFilename, $filename, 20, $primaries, $matrix, $transfer, true);
-                    $distanceScore = $this->butterAugliScore($inputFilename, 'test.avif');
-                    $this->io->writeln(sprintf('Distance score: %.3f', $distanceScore));
-
-                    if ($distanceScore <= 3) {
-                        $this->io->success('Got something!!');
-                    }
-
-                    $filename = sprintf('test_%d_%d_%d_limited.avif', $transfer, $primaries, $matrix);
-                    $this->io->writeln(sprintf('Trying transfer = %d, primaries = %d, matrix = %d, limited range', $transfer, $primaries, $matrix));
-                    $this->avifEncode($inputFilename, $filename, 20, $primaries, $matrix, $transfer, false);
-                    $distanceScore = $this->butterAugliScore($inputFilename, 'test.avif');
-                    $this->io->writeln(sprintf('Distance score: %.3f', $distanceScore));
-
-                    if ($distanceScore <= 3) {
-                        $this->io->success('Got something!!');
-                    }
-                }
-            }
+            return $this->butterAugliScore($inputFilename, 'distance.jpeg');
+        })) {
         }
+
+        $this->io->info(sprintf('Value we ended up with: %d %d', (int) $stepper->minValueReached, (int) $stepper->maxValue));
 
         return Command::SUCCESS;
     }
 
-    protected function findCrfForDistance(string $inputFilename, float $butterAugliTarget = 2.0): int
-    {
-        $currentCrf = 40;
-        $currentDelta = -5;
-
-        $maxCrf = $currentCrf;
-        $minCrf = 1;
-
-        while (true) {
-            $currentCrf = max(1, $currentCrf);
-
-            $this->io->writeln(sprintf('Trying with CRF %d', $currentCrf));
-            $this->avifEncode($inputFilename, 'distance.avif', $currentCrf);
-            $augliScore = $this->butterAugliScore($inputFilename, 'distance.avif');
-
-            if ($augliScore >= $butterAugliTarget) {
-                $this->io->writeln(sprintf('Butteraugli distance %.3f, too high.', $augliScore));
-                $maxCrf = $currentCrf;
-
-                if ($currentDelta > 0) {
-                    $this->io->writeln('Lowering CRF to increase quality');
-                    $currentDelta = -$currentDelta;         // Decrease CRF
-                }
-            } else {
-                $this->io->writeln(sprintf('Butteraugli distance %.3f, too low.', $augliScore));
-                $minCrf = $currentCrf;
-
-                if ($currentDelta < 0) {
-                    $this->io->writeln('Increasing CRF to decrease quality');
-                    $currentDelta = -$currentDelta;         // Increase CRF
-                }
-            }
-
-            $currentCrf += $currentDelta;
-
-            if ($currentDelta >= 0) {
-                if ($currentCrf >= $maxCrf) {
-                    // We already tried this.
-                    if (abs($currentDelta) === 5) {
-                        $this->io->writeln(sprintf('Already tried CRF %d, decreasing CRF to increase quality but in smaller steps', $currentCrf));
-                        $currentDelta = -1;
-                        $currentCrf--;
-                    } else {
-                        $this->io->writeln(sprintf('Already tried CRF %d, steps cannot be smaller. Done', $currentCrf));
-                        break;
-                    }
-                }
-            } else {
-                if ($currentCrf <= $minCrf) {
-                    // We already tried this.
-                    if (abs($currentDelta) === 5) {
-                        $this->io->writeln(sprintf('Already tried CRF %d, increasing CRF to decrease quality but in smaller steps', $currentCrf));
-                        $currentDelta = 1;
-                        $currentCrf++;
-                    } else {
-                        $this->io->writeln(sprintf('Already tried CRF %d, steps cannot be smaller. Done', $currentCrf));
-                        break;
-                    }
-                }
-            }
-        }
-
-        $this->io->info(sprintf('Done, minCrf = %d, maxCrf = %d. Pick %d', $minCrf, $maxCrf, $minCrf));
-
-        @unlink('distance.avif');
-
-        return $minCrf;
-    }
-
-    protected function avifEncode(
+    protected function avifFFEncode(
         string $inputFilename,
         string $outputFilename,
         int $crf = 23,
@@ -217,7 +112,7 @@ class EncodeCommand extends Command
             '-c:v',
             'libaom-av1',
             '-cpu-used',
-            '4',
+            '6',
             '-crf',
             (string) $crf,
             '-denoise-noise-level',
@@ -240,6 +135,68 @@ class EncodeCommand extends Command
         $this->processHelper->mustRun($this->output, $ffmpegProcess);
     }
 
+    protected function avifEncEncode(
+        string $inputFilename,
+        string $outputFilename,
+        int $quality = 65,
+    ): void {
+        $avifencCommand = [
+            $this->avifencExecutable,
+            '-j',
+            'all',
+            '-s',
+            '6',
+            '-y',
+            '444',
+            '--autotiling',
+            '-a',
+            'tune=ssim',
+            '-a',
+            'sharpness=2',
+            '-a',
+            'denoise-noise-level=20',
+            '-a',
+            'enable-dnl-denoising=0',
+            '-q',
+            (string) $quality,
+            $inputFilename,
+            $outputFilename,
+        ];
+
+        $avifencProcess = new Process($avifencCommand, null, null, null, null);
+        $this->processHelper->mustRun($this->output, $avifencProcess);
+    }
+
+    protected function mozjpegEncode(string $sourceFile, string $encodedFile, int $quality): void
+    {
+        $magickCommand = [
+            $this->magickExecutable,
+            $sourceFile,
+            '-depth',
+            '8',
+            'pnm:-',
+        ];
+
+        $magickProcess = new Process($magickCommand, null, null, null, null);
+        $this->processHelper->mustRun($this->output, $magickProcess);
+
+        $pnmData = $magickProcess->getOutput();
+        unset($magickProcess);
+
+        $cjpegCommand = [
+            $this->cjpegExecutable,
+            '-quality',
+            (string) $quality,
+            '-sample',
+            '1x1',
+            '-outfile',
+            $encodedFile,
+        ];
+
+        $cjpegProcess = new Process($cjpegCommand, null, null, $pnmData, null);
+        $this->processHelper->mustRun($this->output, $cjpegProcess);
+    }
+
     protected function butterAugliScore(string $sourceFile, string $encodedFile): float
     {
         $magickCommand = [
@@ -247,26 +204,16 @@ class EncodeCommand extends Command
             $encodedFile,
             '-depth',
             '8',
-            '-define',
-            'PNG:compression-level=0',
-            'augli.png',
+            'augli.pnm',
         ];
 
         $magickProcess = new Process($magickCommand, null, null, null, null);
         $this->processHelper->mustRun($this->output, $magickProcess);
 
-        // $avifdecCommand = [
-        //     $this->avifdecExecutable,
-        //     $encodedFile,
-        //     'augli.png',
-        // ];
-        // $avifdecProcess = new Process($avifdecCommand, null, null, null, null);
-        // $this->processHelper->mustRun($this->output, $avifdecProcess);
-
         $augliCommand = [
             $this->augliExecutable,
             $sourceFile,
-            'augli.png',
+            'augli.pnm',
             '--intensity_target',
             '500',
             '--pnorm',
@@ -278,7 +225,7 @@ class EncodeCommand extends Command
 
         $augliOutput = explode("\r\n", $augliProcess->getOutput());
 
-        @unlink('augli.png');
+        @unlink('augli.pnm');
 
         if (count($augliOutput) > 1) {
             preg_match('/^6-norm: (.*)$/', $augliOutput[1], $matches);
