@@ -35,7 +35,7 @@ class ImageQualityIteratorTest extends TestCase
         $this->assertEqualsWithDelta(2.0, $score, 0.1);
     }
 
-    public function testIterateLoop2_8(): void
+    public function testIterateLoop28(): void
     {
         $iterator = new ImageQualityIterator(1, 80, 0, 2.8);
 
@@ -67,7 +67,7 @@ class ImageQualityIteratorTest extends TestCase
         $this->assertEqualsWithDelta(2.0, $score, 0.1);
     }
 
-    public function testIterateLoopPrecise2_8(): void
+    public function testIterateLoopPrecise28(): void
     {
         $iterator = new ImageQualityIterator(1, 80, 2, 2.8);
 
@@ -92,7 +92,6 @@ class ImageQualityIteratorTest extends TestCase
             $i++;
         }
         $this->assertEquals(7, $i);
-
 
         $result = $iterator->getResult();
         $score = $this->fakeButteraugliQuality((int) $result);
