@@ -71,11 +71,13 @@ class EncodeCommand extends Command
         // $this->io->info(sprintf('Value we ended up with: %d %d', (int) $stepper->minValueReached, (int) $stepper->maxValue));
 
         $stepper = new QualityStepper(5.0, 1.0, 99.0, 50.0, QualityStepper::DECREASE);
-        while ($stepper->iterate(function (float $value) use ($inputFilename) {
+        while ($stepper->iterate(function (float $value) {
             // $this->avifEncEncode($inputFilename, 'distance.avif', (int) $value);
-            $this->mozjpegEncode($inputFilename, 'distance.jpeg', (int) $value);
+            // $this->mozjpegEncode($inputFilename, 'distance.jpeg', (int) $value);
 
-            return $this->butterAugliScore($inputFilename, 'distance.jpeg');
+            // return $this->butterAugliScore($inputFilename, 'distance.jpeg');
+
+            return $this->fakeEncode((int) $value);
         })) {
         }
 
@@ -165,6 +167,24 @@ class EncodeCommand extends Command
 
         $avifencProcess = new Process($avifencCommand, null, null, null, null);
         $this->processHelper->mustRun($this->output, $avifencProcess);
+    }
+
+    protected function fakeEncode(int $quality): float
+    {
+        return match ($quality) {
+            50 => 4.6,
+            55 => 4.0,
+            60 => 3.7,
+            65 => 3.3,
+            70 => 2.9,
+            75 => 2.5,
+            80 => 2.2,
+            81 => 2.15,
+            82 => 2.1,
+            83 => 2.05,
+            84 => 1.95,
+            85 => 1.9,
+        };
     }
 
     protected function mozjpegEncode(string $sourceFile, string $encodedFile, int $quality): void
