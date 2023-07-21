@@ -86,6 +86,23 @@ class ImageQualityIteratorTest extends TestCase
         $this->assertEqualsWithDelta(2.8, $score, 0.1);
     }
 
+    public function testIterateLoopJpeg(): void
+    {
+        $iterator = new ImageQualityIterator(1, 80, 0, 2.0);
+
+        $i = 1;
+        while (!$iterator->iterate(fn (float $value) => $this->fakeButteraugliQuality($value))) {
+            printf("Iterating loop %d\n", $i);
+            $i++;
+        }
+
+        $result = $iterator->getResult();
+        $score = $this->fakeButterAugliCrf((int) $result);
+        dump($result);
+        dump($score);
+        $this->assertEqualsWithDelta(2.0, $score, 0.1);
+    }
+
     public function fakeButterAugliCrf(float $quality): float
     {
         // $part1 = 0.00385075 * ($quality * $quality);
@@ -94,5 +111,10 @@ class ImageQualityIteratorTest extends TestCase
         // return $part1 - $part2 + 2.59797;
 
         return 0.000110559 * pow($quality, 2.75477) + 1.41258;
+    }
+
+    public function fakeButteraugliQuality(float $quality): float
+    {
+        return 9.48925 - 0.199277 * pow($quality, 0.822);
     }
 }
