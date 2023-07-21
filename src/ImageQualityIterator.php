@@ -7,10 +7,10 @@ class ImageQualityIterator
     protected ?float $result = null;
 
     public function __construct(
-        public float $minQuality,
-        public float $maxQuality,
-        public int $qualityPrecision,
-        public float $butteraugliTarget = 2.0,
+        public float $minQuality,               // minimum value to allow for 'quality' setting
+        public float $maxQuality,               // maximum value to allow for 'quality' setting
+        public int $qualityPrecision,           // precision used in round() call for rounding of quality
+        public float $butteraugliTarget = 2.0,  // target butteraugli score to find
     ) {
     }
 
