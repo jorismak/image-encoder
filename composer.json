@@ -11,6 +11,7 @@
         "symfony/dotenv": "6.3.*",
         "symfony/flex": "^2",
         "symfony/framework-bundle": "6.3.*",
+        "symfony/monolog-bundle": "^3.8",
         "symfony/runtime": "6.3.*",
         "symfony/string": "6.3.*",
         "symfony/yaml": "6.3.*"
@@ -25,7 +26,6 @@
         "symfony/css-selector": "6.3.*",
         "symfony/debug-bundle": "6.3.*",
         "symfony/maker-bundle": "^1.50",
-        "symfony/monolog-bundle": "^3.0",
         "symfony/phpunit-bridge": "^6.3",
         "symfony/stopwatch": "6.3.*"
     },
@@ -38,6 +38,7 @@
         },
         "sort-packages": true
     },
+    "bin": ["bin/console"],
     "autoload": {
         "psr-4": {
             "App\\": "src/"
@@ -59,13 +60,15 @@
     },
     "scripts": {
         "auto-scripts": {
-            "cache:clear": "symfony-cmd",
-            "assets:install %PUBLIC_DIR%": "symfony-cmd"
+            "cache:clear": "symfony-cmd"
         },
         "post-install-cmd": [
             "@auto-scripts"
         ],
         "post-update-cmd": [
+            "@auto-scripts"
+        ],
+        "post-autoload-dump": [
             "@auto-scripts"
         ],
         "php-cs-fixer": [
@@ -81,6 +84,14 @@
         ],
         "tests": [
             "symfony php bin/phpunit"
+        ],
+        "build": [
+            "@putenv XDEBUG_MODE=off",
+            "symfony composer install --no-dev -o -a",
+            "symfony composer symfony:dump-env prod",
+            "symfony php bin\\box compile",
+            "del .env.local.php",
+            "symfony composer install"
         ]
     },
     "conflict": {
@@ -90,6 +101,9 @@
         "symfony": {
             "allow-contrib": false,
             "require": "6.3.*"
+        },
+        "runtime": {
+            "autoload_template": "autoload_runtime.template"
         }
     }
 }

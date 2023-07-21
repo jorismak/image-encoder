@@ -1,0 +1,25 @@
+{
+    "files-bin": [
+        ".env",
+        ".env.local.php",
+        "autoload_runtime.template",
+        "src/Controller/.gitignore"
+    ],
+    "blacklist": [
+        ".env.local",
+        "var/log/",
+        "var/cache/dev",
+        "tests",
+        "bin/box"
+    ],
+    "output": "image-encoder.phar",
+    "directories": [
+        "config",
+        "public",
+        "var"
+    ],
+    "force-autodiscovery": true,
+    "check-requirements": false,
+    "exclude-composer-files": false,
+    "compression": "GZ"
+}

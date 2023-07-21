@@ -30,3 +30,4 @@ distance.jpeg
 .phpunit.result.cache
 /phpunit.xml
 ###< symfony/phpunit-bridge ###
+image-encoder.phar
