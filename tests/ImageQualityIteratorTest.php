@@ -16,5 +16,7 @@ class ImageQualityIteratorTest extends TestCase
     
         $this->assertGreaterThanOrEqual(1, $result);
         $this->assertLessThanOrEqual(40, $result);
+
+        $this->assertEquals(20.5, $result);
     }
 }

@@ -14,7 +14,9 @@ class ImageQualityIterator
 
     public function iterate()
     {
+        $value = ($this->minQuality + $this->maxQuality) / 2;
 
+        $this->result = $value;
     }
 
     public function getResult(): ?float
