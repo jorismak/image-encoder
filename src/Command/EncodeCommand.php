@@ -253,18 +253,30 @@ class EncodeCommand extends Command
     protected function fakeEncode(int $quality): float
     {
         return match ($quality) {
-            50 => 4.6,
-            55 => 4.0,
-            60 => 3.7,
-            65 => 3.3,
-            70 => 2.9,
-            75 => 2.5,
-            80 => 2.2,
-            81 => 2.15,
-            82 => 2.1,
-            83 => 2.05,
-            84 => 1.95,
-            85 => 1.9,
+            50 => 2.95,
+            55 => 2.51,
+            60 => 2.19,
+            61 => 2.19,
+            62 => 2.08,
+            63 => 2.01,
+            64 => 2.01,
+            65 => 1.98,
+        };
+    }
+
+    protected function fakeEncodeReverse(int $quality): float
+    {
+        return match ($quality) {
+            40 => 4.78,
+            35 => 3.44,
+            30 => 3.17,
+            25 => 2.40,
+            20 => 2.12,
+            19 => 2.09,
+            18 => 2.01,
+            17 => 1.98,
+            16 => 1.90,
+            15 => 1.89,
         };
     }
 
