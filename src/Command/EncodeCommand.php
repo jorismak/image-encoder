@@ -76,20 +76,52 @@ class EncodeCommand extends Command
         // })) {
         // }
 
-        // $this->io->info(sprintf('Value we ended up with: %d %d', (int) $stepper->minValueReached, (int) $stepper->maxValue));
+        // $this->io->info(sprintf('Value we ended up with: %d', (int) $stepper->result));
+        @unlink('distance.avif');
+
+        // $stepper = new QualityStepper(5.0, 1.0, 99.0, 50.0, QualityStepper::DECREASE);
+        // while ($stepper->iterate(function (float $value) use ($inputFilename) {
+        //     $this->avifEncEncode($inputFilename, 'distance.avif', (int) $value);
+
+        //     return $this->butterAugliScore($inputFilename, 'distance.avif');
+        // })) {
+        // }
+
+        // $this->io->info(sprintf('Value we ended up with: %d', (int) $stepper->result));
+        @unlink('distance.avif');
+
+        // $stepper = new QualityStepper(5.0, 1.0, 99.0, 50.0, QualityStepper::DECREASE);
+        // while ($stepper->iterate(function (float $value) use ($inputFilename) {
+        //     $this->mozjpegEncode($inputFilename, 'distance.jpeg', (int) $value);
+
+        //     return $this->butterAugliScore($inputFilename, 'distance.jpeg');
+        // })) {
+        // }
+
+        // $this->io->info(sprintf('Value we ended up with: %d', (int) $stepper->result));
+        @unlink('distance.jpeg');
+
+        // $stepper = new QualityStepper(0.5, 0.1, 3.0, 0.1, QualityStepper::INCREASE);
+        // while ($stepper->iterate(function (float $value) use ($inputFilename) {
+        //     $this->cjxlEncode($inputFilename, 'distance.ppm', $value);
+
+        //     return $this->butterAugliScore($inputFilename, 'distance.ppm');
+        // })) {
+        // }
+
+        // $this->io->info(sprintf('Value we ended up with: %d', (int) $stepper->result));
+        @unlink('distance.ppm');
 
         $stepper = new QualityStepper(5.0, 1.0, 99.0, 50.0, QualityStepper::DECREASE);
-        while ($stepper->iterate(function (float $value) {
-            // $this->avifEncEncode($inputFilename, 'distance.avif', (int) $value);
-            // $this->mozjpegEncode($inputFilename, 'distance.jpeg', (int) $value);
+        while ($stepper->iterate(function (float $value) use ($inputFilename) {
+            $this->webpEncode($inputFilename, 'distance.ppm', (int) $value);
 
-            // return $this->butterAugliScore($inputFilename, 'distance.jpeg');
-
-            return $this->fakeEncode((int) $value);
+            return $this->butterAugliScore($inputFilename, 'distance.ppm');
         })) {
         }
 
-        $this->io->info(sprintf('Value we ended up with: %d %d', (int) $stepper->minValueReached, (int) $stepper->maxValue));
+        $this->io->info(sprintf('Value we ended up with: %d', (int) $stepper->result));
+        @unlink('distance.ppm');
 
         return Command::SUCCESS;
     }
