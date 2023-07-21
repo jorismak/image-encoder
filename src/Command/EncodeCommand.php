@@ -2,7 +2,8 @@
 
 namespace App\Command;
 
-use App\QualityStepper;
+use App\ImageQualityIterator;
+use App\IteratorDirection;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProcessHelper;
@@ -13,6 +14,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
+
+use function Symfony\Component\String\u;
 
 #[AsCommand(
     name: 'encode',
@@ -41,6 +44,7 @@ class EncodeCommand extends Command
             ->addArgument('input', InputArgument::REQUIRED, 'Input file')
             ->addArgument('output', InputArgument::REQUIRED, 'Output file')
             ->addOption('codec', 'c', InputOption::VALUE_REQUIRED, 'Codec to use', 'avif')
+            ->addOption('distance', 'd', InputOption::VALUE_REQUIRED, 'Butteraugli distance target', '2.0')
         ;
     }
 
@@ -54,74 +58,82 @@ class EncodeCommand extends Command
 
         $inputFilename = $input->getArgument('input');
         $outputFilename = $input->getArgument('output');
+        $codec = $input->getOption('codec');
+        $distanceTarget = (float) $input->getOption('distance');
 
         $executableFinder = new ExecutableFinder();
 
-        $this->ffmpegExecutable = $executableFinder->find('ffmpeg');
         $this->augliExecutable = $executableFinder->find('butteraugli_main.exe');
         $this->magickExecutable = $executableFinder->find('magick.exe');
-        // $this->avifdecExecutable = $executableFinder->find('avifdec.exe');
-        $this->avifencExecutable = $executableFinder->find('avifenc.exe');
-        $this->cjpegExecutable = $executableFinder->find('cjpeg-static.exe');
-        $this->cjxlExecutable = $executableFinder->find('cjxl.exe');
-        $this->djxlExecutable = $executableFinder->find('djxl.exe');
-        $this->cwebpExecutable = $executableFinder->find('cwebp.exe');
-        $this->dwebpExecutable = $executableFinder->find('dwebp.exe');
+        switch ($codec) {
+            case 'avif':
+                $this->ffmpegExecutable = $executableFinder->find('ffmpeg');
+                break;
+            case 'avifenc':
+                $this->avifencExecutable = $executableFinder->find('avifenc.exe');
+                break;
+            case 'jxl':
+                $this->cjxlExecutable = $executableFinder->find('cjxl.exe');
+                $this->djxlExecutable = $executableFinder->find('djxl.exe');
+                break;
+            case 'heic':
+                // FIXME:
+                $this->io->error('Still todo');
+                break;
+            case 'jpeg':
+                $this->cjpegExecutable = $executableFinder->find('cjpeg-static.exe');
+                break;
+            case 'webp':
+                $this->cwebpExecutable = $executableFinder->find('cwebp.exe');
+                $this->dwebpExecutable = $executableFinder->find('dwebp.exe');
+                break;
+            default:
+                $this->io->error('Unknown codec!');
 
-        // $stepper = new QualityStepper(5.0, 1.0, 40.0, 1.0, QualityStepper::INCREASE);
-        // while ($stepper->iterate(function (float $value) use ($inputFilename) {
-        //     $this->avifFFEncode($inputFilename, 'distance.avif', (int) $value, 1, 1, 13, true);
+                return self::FAILURE;
+        }
 
-        //     return $this->butterAugliScore($inputFilename, 'distance.avif');
-        // })) {
-        // }
+        $stepper = match ($codec) {
+            'avif' => new ImageQualityIterator(1, 50, 0, $distanceTarget),
+            'avifenc' => new ImageQualityIterator(50, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
+            'jxl' => new ImageQualityIterator(0.1, 5, 1, $distanceTarget),
+            'heic' => new ImageQualityIterator(1, 50, 0, $distanceTarget),
+            'jpeg' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
+            'webp' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
+        };
 
-        // $this->io->info(sprintf('Value we ended up with: %d', (int) $stepper->result));
-        @unlink('distance.avif');
+        while (!$stepper->iterate(function (float $qualityValue) use ($codec, $inputFilename, $outputFilename): float {
+            $this->io->writeln(sprintf('Trying with %.3f', $qualityValue));
 
-        // $stepper = new QualityStepper(5.0, 1.0, 99.0, 50.0, QualityStepper::DECREASE);
-        // while ($stepper->iterate(function (float $value) use ($inputFilename) {
-        //     $this->avifEncEncode($inputFilename, 'distance.avif', (int) $value);
+            switch ($codec) {
+                case 'avif':
+                    $this->avifFFEncode($inputFilename, $outputFilename, (int) $qualityValue);
+                    break;
+                case 'avifenc':
+                    $this->avifEncEncode($inputFilename, $outputFilename, (int) $qualityValue);
+                    break;
+                case 'jxl':
+                    $this->cjxlEncode($inputFilename, $outputFilename, $qualityValue);
+                    break;
+                case 'heic':
+                    // FIXME:
+                    break;
+                case 'jpeg':
+                    $this->mozjpegEncode($inputFilename, $outputFilename, (int) $qualityValue);
+                    break;
+                case 'webp':
+                    $this->webpEncode($inputFilename, $outputFilename, (int) $qualityValue);
+                    break;
+            }
 
-        //     return $this->butterAugliScore($inputFilename, 'distance.avif');
-        // })) {
-        // }
+            $score = $this->butterAugliScore($inputFilename, $outputFilename);
+            $this->io->writeln(sprintf('Score: %.3f', $score));
 
-        // $this->io->info(sprintf('Value we ended up with: %d', (int) $stepper->result));
-        @unlink('distance.avif');
-
-        // $stepper = new QualityStepper(5.0, 1.0, 99.0, 50.0, QualityStepper::DECREASE);
-        // while ($stepper->iterate(function (float $value) use ($inputFilename) {
-        //     $this->mozjpegEncode($inputFilename, 'distance.jpeg', (int) $value);
-
-        //     return $this->butterAugliScore($inputFilename, 'distance.jpeg');
-        // })) {
-        // }
-
-        // $this->io->info(sprintf('Value we ended up with: %d', (int) $stepper->result));
-        @unlink('distance.jpeg');
-
-        // $stepper = new QualityStepper(0.5, 0.1, 3.0, 0.1, QualityStepper::INCREASE);
-        // while ($stepper->iterate(function (float $value) use ($inputFilename) {
-        //     $this->cjxlEncode($inputFilename, 'distance.ppm', $value);
-
-        //     return $this->butterAugliScore($inputFilename, 'distance.ppm');
-        // })) {
-        // }
-
-        // $this->io->info(sprintf('Value we ended up with: %d', (int) $stepper->result));
-        @unlink('distance.ppm');
-
-        $stepper = new QualityStepper(5.0, 1.0, 99.0, 50.0, QualityStepper::DECREASE);
-        while ($stepper->iterate(function (float $value) use ($inputFilename) {
-            $this->webpEncode($inputFilename, 'distance.ppm', (int) $value);
-
-            return $this->butterAugliScore($inputFilename, 'distance.ppm');
+            return $score;
         })) {
         }
 
-        $this->io->info(sprintf('Value we ended up with: %d', (int) $stepper->result));
-        @unlink('distance.ppm');
+        $this->io->writeln(sprintf('Settled on %.3f', $stepper->getResult()));
 
         return Command::SUCCESS;
     }
@@ -131,14 +143,12 @@ class EncodeCommand extends Command
         string $outputFilename,
         int $crf = 23,
         int $primaries = 1,
-        int $matrix = 1,
-        int $transfer = 4,
+        int $matrix = 7,
+        int $transfer = 13,
         bool $fullRange = true,
     ): void {
         $ffmpegCommand = [
             $this->ffmpegExecutable,
-            '-threads',
-            '16',
             '-loglevel',
             'warning',
             '-i',
@@ -160,7 +170,9 @@ class EncodeCommand extends Command
             '-denoise-noise-level',
             '20',
             '-tiles',
-            '4x4',
+            '5x5',
+            '-row-mt',
+            '1',
             '-usage',
             'allintra',
             '-tune',
@@ -230,24 +242,11 @@ class EncodeCommand extends Command
             '-noalpha',
             $inputFilename,
             '-o',
-            'cwebp.webp',
+            $outputFilename,
         ];
 
         $cwebpProcess = new Process($cwebpCommand, null, null, null, null);
         $this->processHelper->mustRun($this->output, $cwebpProcess);
-
-        $dwebpCommand = [
-            $this->dwebpExecutable,
-            'cwebp.webp',
-            '-ppm',
-            '-o',
-            $outputFilename,
-        ];
-
-        $dwebpProcess = new Process($dwebpCommand, null, null, null, null);
-        $this->processHelper->mustRun($this->output, $dwebpProcess);
-
-        // @unlink('cwebp.webp');
     }
 
     protected function cjxlEncode(
@@ -264,59 +263,18 @@ class EncodeCommand extends Command
             '--intensity_target',
             '500',
             $inputFilename,
-            'cjxl.jxl',
+            $outputFilename,
         ];
 
         $cjxlProcess = new Process($cjxlCommand, null, null, null, null);
         $this->processHelper->mustRun($this->output, $cjxlProcess);
-
-        $djxlCommand = [
-            $this->djxlExecutable,
-            'cjxl.jxl',
-            $outputFilename,
-        ];
-
-        $djxlProcess = new Process($djxlCommand, null, null, null, null);
-        $this->processHelper->mustRun($this->output, $djxlProcess);
-
-        // @unlink('cjxl.jxl');
     }
 
-    protected function fakeEncode(int $quality): float
-    {
-        return match ($quality) {
-            50 => 2.95,
-            55 => 2.51,
-            60 => 2.19,
-            61 => 2.19,
-            62 => 2.08,
-            63 => 2.01,
-            64 => 2.01,
-            65 => 1.98,
-        };
-    }
-
-    protected function fakeEncodeReverse(int $quality): float
-    {
-        return match ($quality) {
-            40 => 4.78,
-            35 => 3.44,
-            30 => 3.17,
-            25 => 2.40,
-            20 => 2.12,
-            19 => 2.09,
-            18 => 2.01,
-            17 => 1.98,
-            16 => 1.90,
-            15 => 1.89,
-        };
-    }
-
-    protected function mozjpegEncode(string $sourceFile, string $encodedFile, int $quality): void
+    protected function mozjpegEncode(string $inputFilename, string $outputFilename, int $quality): void
     {
         $magickCommand = [
             $this->magickExecutable,
-            $sourceFile,
+            $inputFilename,
             '-depth',
             '8',
             'pnm:-',
@@ -335,7 +293,7 @@ class EncodeCommand extends Command
             '-sample',
             '1x1',
             '-outfile',
-            $encodedFile,
+            $outputFilename,
         ];
 
         $cjpegProcess = new Process($cjpegCommand, null, null, $pnmData, null);
@@ -344,21 +302,51 @@ class EncodeCommand extends Command
 
     protected function butterAugliScore(string $sourceFile, string $encodedFile): float
     {
-        $magickCommand = [
-            $this->magickExecutable,
-            $encodedFile,
-            '-depth',
-            '8',
-            'augli.pnm',
-        ];
+        $encodedString = u($encodedFile);
 
-        $magickProcess = new Process($magickCommand, null, null, null, null);
-        $this->processHelper->mustRun($this->output, $magickProcess);
+        if ($encodedString->endsWith('.jxl')) {
+            $djxlCommand = [
+                $this->djxlExecutable,
+                $encodedFile,
+                'augli.ppm',
+            ];
+
+            $djxlProcess = new Process($djxlCommand, null, null, null, null);
+            $this->processHelper->mustRun($this->output, $djxlProcess);
+
+            $augliFile = 'augli.ppm';
+        } elseif ($encodedString->endsWith('.webp')) {
+            $dwebpCommand = [
+                $this->dwebpExecutable,
+                $encodedFile,
+                '-ppm',
+                '-o',
+                'augli.ppm',
+            ];
+
+            $dwebpProcess = new Process($dwebpCommand, null, null, null, null);
+            $this->processHelper->mustRun($this->output, $dwebpProcess);
+
+            $augliFile = 'augli.ppm';
+        } else {
+            $magickCommand = [
+                $this->magickExecutable,
+                $encodedFile,
+                '-depth',
+                '8',
+                'augli.pnm',
+            ];
+
+            $magickProcess = new Process($magickCommand, null, null, null, null);
+            $this->processHelper->mustRun($this->output, $magickProcess);
+
+            $augliFile = 'augli.pnm';
+        }
 
         $augliCommand = [
             $this->augliExecutable,
             $sourceFile,
-            'augli.pnm',
+            $augliFile,
             '--intensity_target',
             '500',
             '--pnorm',
@@ -370,7 +358,7 @@ class EncodeCommand extends Command
 
         $augliOutput = explode("\r\n", $augliProcess->getOutput());
 
-        @unlink('augli.pnm');
+        @unlink($augliFile);
 
         if (count($augliOutput) > 1) {
             preg_match('/^6-norm: (.*)$/', $augliOutput[1], $matches);
