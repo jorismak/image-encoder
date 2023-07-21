@@ -77,6 +77,10 @@
         "phpstan": [
             "@putenv XDEBUG_MODE=off",
             "vendor/bin/phpstan analyze"
+        ],
+        "tests": [
+            "@putenv XDEBUG_MODE=off",
+            "symfony php bin/phpunit"
         ]
     },
     "conflict": {
