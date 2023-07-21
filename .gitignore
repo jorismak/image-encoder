@@ -20,6 +20,7 @@
 *.pnm
 *.jxl
 *.webp
+*.heic
 zscale.txt
 test.bat
 distance.jpeg
