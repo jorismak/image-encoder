@@ -301,6 +301,8 @@ class EncodeCommand extends Command
             (int) $quality,
             '--no-alpha',
             '-p',
+            'preset=veryslow',
+            '-p',
             'tune=grain',
             '-p',
             'chroma=444',
