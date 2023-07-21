@@ -37,21 +37,27 @@ class ImageQualityIterator
     {
         $value = ($this->minQuality + $this->maxQuality) / 2;
         $value = round($value, $this->qualityPrecision);
-        $this->result = $value;
 
         // Rounding goes up. So if we hit the max quality, we can't go any more precise.
         if ($value === $this->maxQuality) {
             // Depending on the direction, return the low or high value
             if ($this->direction === IteratorDirection::DECREASE) {
-                $this->result = $this->minQuality;
+                $value = $this->minQuality;
             } else {
-                $this->result = $this->maxQuality;
+                $value = $this->maxQuality;
+            }
+
+            if ($value !== $this->result) {
+                ($tester)($value);
+                $this->result = $value;
             }
 
             return true;
         }
 
         $score = ($tester)($value);
+        $this->result = $value;
+
         if ($score < $this->butteraugliTarget) {
             if ($this->direction === IteratorDirection::DECREASE) {
                 $this->minQuality = $value;
