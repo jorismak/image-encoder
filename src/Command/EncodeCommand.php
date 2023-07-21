@@ -26,6 +26,10 @@ class EncodeCommand extends Command
     // private ?string $avifdecExecutable = null;
     private ?string $avifencExecutable = null;
     private ?string $cjpegExecutable = null;
+    private ?string $cjxlExecutable = null;
+    private ?string $djxlExecutable = null;
+    private ?string $cwebpExecutable = null;
+    private ?string $dwebpExecutable = null;
 
     private ?ProcessHelper $processHelper = null;
     private OutputInterface $output;
@@ -59,6 +63,10 @@ class EncodeCommand extends Command
         // $this->avifdecExecutable = $executableFinder->find('avifdec.exe');
         $this->avifencExecutable = $executableFinder->find('avifenc.exe');
         $this->cjpegExecutable = $executableFinder->find('cjpeg-static.exe');
+        $this->cjxlExecutable = $executableFinder->find('cjxl.exe');
+        $this->djxlExecutable = $executableFinder->find('djxl.exe');
+        $this->cwebpExecutable = $executableFinder->find('cwebp.exe');
+        $this->dwebpExecutable = $executableFinder->find('dwebp.exe');
 
         // $stepper = new QualityStepper(5.0, 1.0, 40.0, 1.0, QualityStepper::INCREASE);
         // while ($stepper->iterate(function (float $value) use ($inputFilename) {
@@ -167,6 +175,79 @@ class EncodeCommand extends Command
 
         $avifencProcess = new Process($avifencCommand, null, null, null, null);
         $this->processHelper->mustRun($this->output, $avifencProcess);
+    }
+
+    protected function webpEncode(
+        string $inputFilename,
+        string $outputFilename,
+        int $quality = 65,
+    ): void {
+        $cwebpCommand = [
+            $this->cwebpExecutable,
+            '-q',
+            (string) $quality,
+            // '-preset',
+            // 'photo',
+            '-m',
+            '6',
+            '-sns',
+            '100',
+            '-sharpness',
+            '7',
+            '-mt',
+            '-noalpha',
+            $inputFilename,
+            '-o',
+            'cwebp.webp',
+        ];
+
+        $cwebpProcess = new Process($cwebpCommand, null, null, null, null);
+        $this->processHelper->mustRun($this->output, $cwebpProcess);
+
+        $dwebpCommand = [
+            $this->dwebpExecutable,
+            'cwebp.webp',
+            '-ppm',
+            '-o',
+            $outputFilename,
+        ];
+
+        $dwebpProcess = new Process($dwebpCommand, null, null, null, null);
+        $this->processHelper->mustRun($this->output, $dwebpProcess);
+
+        // @unlink('cwebp.webp');
+    }
+
+    protected function cjxlEncode(
+        string $inputFilename,
+        string $outputFilename,
+        float $distance = 1.8,
+    ): void {
+        $cjxlCommand = [
+            $this->cjxlExecutable,
+            '-e',
+            '8',
+            '-d',
+            sprintf('%.1f', $distance),
+            '--intensity_target',
+            '500',
+            $inputFilename,
+            'cjxl.jxl',
+        ];
+
+        $cjxlProcess = new Process($cjxlCommand, null, null, null, null);
+        $this->processHelper->mustRun($this->output, $cjxlProcess);
+
+        $djxlCommand = [
+            $this->djxlExecutable,
+            'cjxl.jxl',
+            $outputFilename,
+        ];
+
+        $djxlProcess = new Process($djxlCommand, null, null, null, null);
+        $this->processHelper->mustRun($this->output, $djxlProcess);
+
+        // @unlink('cjxl.jxl');
     }
 
     protected function fakeEncode(int $quality): float
