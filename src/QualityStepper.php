@@ -13,6 +13,7 @@ class QualityStepper
     public const SMALL_STEP = 1;
 
     public float $value;
+    public float $result;
     public float $maxValueReached;
     public float $minValueReached;
     public float $delta;
@@ -82,6 +83,8 @@ class QualityStepper
                 }
             }
         } else {
+            $this->result = $this->value;
+
             // quality to high
             if ($this->qualityTooHigh === self::INCREASE) {
                 // quality to high, need to increase value
