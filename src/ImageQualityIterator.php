@@ -2,15 +2,31 @@
 
 namespace App;
 
+enum IteratorDirection
+{
+    case INCREASE;
+    case DECREASE;
+}
+
 class ImageQualityIterator
 {
     protected ?float $result = null;
 
     public function __construct(
-        public float $minQuality,               // minimum value to allow for 'quality' setting
-        public float $maxQuality,               // maximum value to allow for 'quality' setting
-        public int $qualityPrecision,           // precision used in round() call for rounding of quality
-        public float $butteraugliTarget = 2.0,  // target butteraugli score to find
+        // minimum value to allow for 'quality' setting
+        public float $minQuality,
+
+        // maximum value to allow for 'quality' setting
+        public float $maxQuality,
+
+        // precision used in round() call for rounding of quality
+        public int $qualityPrecision,
+
+        // target butteraugli score to find
+        public float $butteraugliTarget = 2.0,
+
+        // direction to take the 'quality' to get a shorter distance score
+        public IteratorDirection $direction = IteratorDirection::DECREASE
     ) {
     }
 
