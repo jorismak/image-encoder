@@ -9,6 +9,7 @@ class ImageQualityIterator
     public function __construct(
         public float $minQuality,
         public float $maxQuality,
+        public float $butteraugliTarget = 2.0,
     ) {
     }
 
