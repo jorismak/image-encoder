@@ -34,6 +34,7 @@ class EncodeCommand extends Command
     private ?string $cwebpExecutable = null;
     private ?string $dwebpExecutable = null;
     private ?string $heifencExecutable = null;
+    private ?string $mp4boxExecutable = null;
 
     private ?ProcessHelper $processHelper = null;
     private OutputInterface $output;
@@ -80,6 +81,10 @@ class EncodeCommand extends Command
             case 'heifenc':
                 $this->heifencExecutable = $executableFinder->find('heif-enc.exe');
                 break;
+            case 'heif':
+                $this->ffmpegExecutable = $executableFinder->find('ffmpeg');
+                $this->mp4boxExecutable = $executableFinder->find('mp4box.exe');
+                break;
             case 'jpeg':
                 $this->cjpegExecutable = $executableFinder->find('cjpeg-static.exe');
                 break;
@@ -98,6 +103,7 @@ class EncodeCommand extends Command
             'avifenc' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
             'jxl' => new ImageQualityIterator(0.1, 5, 1, $distanceTarget),
             'heifenc' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
+            'heif' => new ImageQualityIterator(1, 50, 0, $distanceTarget),
             'jpeg' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
             'webp' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
         };
@@ -117,6 +123,9 @@ class EncodeCommand extends Command
                     break;
                 case 'heifenc':
                     $this->heifencEncode($inputFilename, $outputFilename, (int) $qualityValue);
+                    break;
+                case 'heif':
+                    $this->heifFFEncode($inputFilename, $outputFilename, (int) $qualityValue);
                     break;
                 case 'jpeg':
                     $this->mozjpegEncode($inputFilename, $outputFilename, (int) $qualityValue);
@@ -187,6 +196,66 @@ class EncodeCommand extends Command
 
         $ffmpegProcess = new Process($ffmpegCommand, null, null, null, null);
         $this->processHelper->mustRun($this->output, $ffmpegProcess);
+    }
+
+    protected function heifFFEncode(
+        string $inputFilename,
+        string $outputFilename,
+        int $crf = 23,
+        int $primaries = 1,
+        int $matrix = 7,
+        int $transfer = 1,
+        bool $fullRange = true,
+    ): void {
+        $ffmpegCommand = [
+            $this->ffmpegExecutable,
+            '-loglevel',
+            'warning',
+            '-i',
+            $inputFilename,
+            '-vf',
+            sprintf(
+                'format=gbrp,zscale=tin=%d:t=%d:pin=%d:p=%d:m=%d:r=%s,format=yuv444p',
+                $transfer, $transfer,
+                $primaries, $primaries,
+                $matrix,
+                $fullRange ? 'full' : 'limited',
+            ),
+            '-c:v',
+            'libx265',
+            '-g',
+            '1',
+            '-preset',
+            'veryslow',
+            '-profile:v',
+            'main444-stillpicture',
+            '-crf',
+            (string) $crf,
+            '-tune',
+            'grain',
+            '-y',
+            '-f',
+            'hevc',
+            'heif.hevc',
+        ];
+
+        $ffmpegProcess = new Process($ffmpegCommand, null, null, null, null);
+        $this->processHelper->mustRun($this->output, $ffmpegProcess);
+
+        $mp4boxCommand = [
+            $this->mp4boxExecutable,
+            '-add-image',
+            'heif.hevc:primary',
+            '-ab',
+            'heic',
+            '-new',
+            $outputFilename,
+        ];
+
+        $mp4boxProcess = new Process($mp4boxCommand, null, null, null, null);
+        $this->processHelper->mustRun($this->output, $mp4boxProcess);
+
+        @unlink('heif.hevc');
     }
 
     protected function avifEncEncode(
