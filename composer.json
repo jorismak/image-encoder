@@ -79,7 +79,6 @@
             "vendor/bin/phpstan analyze"
         ],
         "tests": [
-            "@putenv XDEBUG_MODE=off",
             "symfony php bin/phpunit"
         ]
     },
