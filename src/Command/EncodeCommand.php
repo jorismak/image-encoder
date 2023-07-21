@@ -256,6 +256,8 @@ class EncodeCommand extends Command
     ): void {
         $cjxlCommand = [
             $this->cjxlExecutable,
+            '--lossless_jpeg',
+            '0',
             '-e',
             '8',
             '-d',
