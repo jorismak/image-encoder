@@ -18,19 +18,15 @@
 *.jpg
 *.png
 *.pnm
+*.jxl
+*.webp
 zscale.txt
 test.bat
 distance.jpeg
-cjxl.jxl
-cwebp.webp
 
 .vscode
+
 ###> symfony/phpunit-bridge ###
 .phpunit.result.cache
 /phpunit.xml
 ###< symfony/phpunit-bridge ###
-
-###> phpunit/phpunit ###
-/phpunit.xml
-.phpunit.result.cache
-###< phpunit/phpunit ###
