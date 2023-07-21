@@ -41,20 +41,32 @@ class ImageQualityIterator
 
         // Rounding goes up. So if we hit the max quality, we can't go any more precise.
         if ($value === $this->maxQuality) {
-            // Dependong in preference, return the low or high value
-            $this->result = $this->minQuality;
+            // Depending on the direction, return the low or high value
+            if ($this->direction === IteratorDirection::DECREASE) {
+                $this->result = $this->minQuality;
+            } else {
+                $this->result = $this->maxQuality;
+            }
 
             return true;
         }
 
         $score = ($tester)($value);
         if ($score < $this->butteraugliTarget) {
-            $this->minQuality = $value;
+            if ($this->direction === IteratorDirection::DECREASE) {
+                $this->minQuality = $value;
+            } else {
+                $this->maxQuality = $value;
+            }
         } elseif ($score > $this->butteraugliTarget) {
-            $this->maxQuality = $value;
+            if ($this->direction === IteratorDirection::DECREASE) {
+                $this->maxQuality = $value;
+            } else {
+                $this->minQuality = $value;
+            }
         }
 
-        printf("Iterate. Value = %.3f, score = %.3f, min = %.3f, max = %.3f\n", $value, $score, $this->minQuality, $this->maxQuality);
+        // printf("Iterate. Value = %.3f, score = %.3f, min = %.3f, max = %.3f\n", $value, $score, $this->minQuality, $this->maxQuality);
 
         return false;
     }
