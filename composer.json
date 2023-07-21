@@ -88,8 +88,8 @@
         ],
         "build": [
             "@putenv XDEBUG_MODE=off",
-            "symfony composer install --no-dev -o -a",
             "symfony composer symfony:dump-env prod",
+            "symfony composer install --no-dev -o -a",
             "symfony php bin\\box compile",
             "del .env.local.php",
             "symfony composer install"
