@@ -14,6 +14,9 @@ class ImageQualityIterator
     ) {
     }
 
+    /**
+     * @param callable(float): float $tester
+     */
     public function iterate(callable $tester): bool
     {
         $value = ($this->minQuality + $this->maxQuality) / 2;
