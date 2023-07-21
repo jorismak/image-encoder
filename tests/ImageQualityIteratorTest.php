@@ -9,26 +9,46 @@ class ImageQualityIteratorTest extends TestCase
 {
     public function testIterate(): void
     {
-        $iterator = new ImageQualityIterator(1, 40);
+        $iterator = new ImageQualityIterator(1, 40, 0);
         $iterator->iterate(fn (float $value) => $this->fakeButterAugliCrf((int) $value));
 
         $result = $iterator->getResult();
         $this->assertGreaterThanOrEqual(1, $result);
         $this->assertLessThanOrEqual(40, $result);
-        $this->assertEquals(20.5, $result);
+        $this->assertEquals(21, $result);
     }
 
     public function testIterateLoop(): void
     {
-        $iterator = new ImageQualityIterator(1, 40);
+        $iterator = new ImageQualityIterator(1, 80, 0);
 
         $i = 1;
         while (!$iterator->iterate(fn (float $value) => $this->fakeButterAugliCrf((int) $value))) {
-            printf("Iterating loop %d\n", $i + 1);
+            printf("Iterating loop %d\n", $i);
+            $i++;
         }
 
         $result = $iterator->getResult();
         $score = $this->fakeButterAugliCrf((int) $result);
+        dump($result);
+        dump($score);
+        $this->assertEqualsWithDelta(2.0, $score, 0.1);
+    }
+
+    public function testIterateLoopPrecise(): void
+    {
+        $iterator = new ImageQualityIterator(1, 80, 2);
+
+        $i = 1;
+        while (!$iterator->iterate(fn (float $value) => $this->fakeButterAugliCrf($value))) {
+            printf("Iterating loop %d\n", $i);
+            $i++;
+        }
+
+        $result = $iterator->getResult();
+        $score = $this->fakeButterAugliCrf((int) $result);
+        dump($result);
+        dump($score);
         $this->assertEqualsWithDelta(2.0, $score, 0.1);
     }
 
