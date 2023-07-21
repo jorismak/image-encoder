@@ -95,7 +95,7 @@ class EncodeCommand extends Command
 
         $stepper = match ($codec) {
             'avif' => new ImageQualityIterator(1, 50, 0, $distanceTarget),
-            'avifenc' => new ImageQualityIterator(50, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
+            'avifenc' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
             'jxl' => new ImageQualityIterator(0.1, 5, 1, $distanceTarget),
             'heic' => new ImageQualityIterator(1, 50, 0, $distanceTarget),
             'jpeg' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
