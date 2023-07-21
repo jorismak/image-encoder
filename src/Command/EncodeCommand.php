@@ -33,6 +33,7 @@ class EncodeCommand extends Command
     private ?string $djxlExecutable = null;
     private ?string $cwebpExecutable = null;
     private ?string $dwebpExecutable = null;
+    private ?string $heifencExecutable = null;
 
     private ?ProcessHelper $processHelper = null;
     private OutputInterface $output;
@@ -76,9 +77,8 @@ class EncodeCommand extends Command
                 $this->cjxlExecutable = $executableFinder->find('cjxl.exe');
                 $this->djxlExecutable = $executableFinder->find('djxl.exe');
                 break;
-            case 'heic':
-                // FIXME:
-                $this->io->error('Still todo');
+            case 'heifenc':
+                $this->heifencExecutable = $executableFinder->find('heif-enc.exe');
                 break;
             case 'jpeg':
                 $this->cjpegExecutable = $executableFinder->find('cjpeg-static.exe');
@@ -97,7 +97,7 @@ class EncodeCommand extends Command
             'avif' => new ImageQualityIterator(1, 50, 0, $distanceTarget),
             'avifenc' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
             'jxl' => new ImageQualityIterator(0.1, 5, 1, $distanceTarget),
-            'heic' => new ImageQualityIterator(1, 50, 0, $distanceTarget),
+            'heifenc' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
             'jpeg' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
             'webp' => new ImageQualityIterator(1, 100, 0, $distanceTarget, IteratorDirection::INCREASE),
         };
@@ -115,8 +115,8 @@ class EncodeCommand extends Command
                 case 'jxl':
                     $this->cjxlEncode($inputFilename, $outputFilename, $qualityValue);
                     break;
-                case 'heic':
-                    // FIXME:
+                case 'heifenc':
+                    $this->heifencEncode($inputFilename, $outputFilename, (int) $qualityValue);
                     break;
                 case 'jpeg':
                     $this->mozjpegEncode($inputFilename, $outputFilename, (int) $qualityValue);
@@ -219,6 +219,29 @@ class EncodeCommand extends Command
 
         $avifencProcess = new Process($avifencCommand, null, null, null, null);
         $this->processHelper->mustRun($this->output, $avifencProcess);
+    }
+
+    protected function heifencEncode(
+        string $inputFilename,
+        string $outputFilename,
+        int $quality = 65,
+    ): void {
+        $heifencCommand = [
+            $this->heifencExecutable,
+            '-q',
+            (int) $quality,
+            '--no-alpha',
+            '-p',
+            'tune=grain',
+            '-p',
+            'chroma=444',
+            '-o',
+            $outputFilename,
+            $inputFilename,
+        ];
+
+        $heifencProcess = new Process($heifencCommand, null, null, null, null);
+        $this->processHelper->mustRun($this->output, $heifencProcess);
     }
 
     protected function webpEncode(
