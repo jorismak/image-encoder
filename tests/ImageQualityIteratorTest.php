@@ -11,7 +11,7 @@ class ImageQualityIteratorTest extends TestCase
     public function testIterate(): void
     {
         $iterator = new ImageQualityIterator(1, 40, 0);
-        $iterator->iterate(fn (float $value) => $this->fakeButterAugliCrf((int) $value));
+        $iterator->iterate(fn (float $value): float => $this->fakeButterAugliCrf((int) $value));
 
         $result = $iterator->getResult();
         $this->assertGreaterThanOrEqual(1, $result);
@@ -24,7 +24,7 @@ class ImageQualityIteratorTest extends TestCase
         $iterator = new ImageQualityIterator(1, 80, 0);
 
         $i = 0;
-        while (!$iterator->iterate(fn (float $value) => $this->fakeButterAugliCrf((int) $value))) {
+        while (!$iterator->iterate(fn (float $value): float => $this->fakeButterAugliCrf((int) $value))) {
             $i++;
         }
         $this->assertEquals(7, $i);
@@ -40,7 +40,7 @@ class ImageQualityIteratorTest extends TestCase
         $iterator = new ImageQualityIterator(1, 80, 0, 2.8);
 
         $i = 0;
-        while (!$iterator->iterate(fn (float $value) => $this->fakeButterAugliCrf((int) $value))) {
+        while (!$iterator->iterate(fn (float $value): float => $this->fakeButterAugliCrf((int) $value))) {
             $i++;
         }
         $this->assertEquals(6, $i);
@@ -56,7 +56,7 @@ class ImageQualityIteratorTest extends TestCase
         $iterator = new ImageQualityIterator(1, 80, 2);
 
         $i = 0;
-        while (!$iterator->iterate(fn (float $value) => $this->fakeButterAugliCrf($value))) {
+        while (!$iterator->iterate(fn (float $value): float => $this->fakeButterAugliCrf($value))) {
             $i++;
         }
         $this->assertEquals(13, $i);
@@ -72,7 +72,7 @@ class ImageQualityIteratorTest extends TestCase
         $iterator = new ImageQualityIterator(1, 80, 2, 2.8);
 
         $i = 0;
-        while (!$iterator->iterate(fn (float $value) => $this->fakeButterAugliCrf($value))) {
+        while (!$iterator->iterate(fn (float $value): float => $this->fakeButterAugliCrf($value))) {
             $i++;
         }
         $this->assertEquals(13, $i);
@@ -88,7 +88,7 @@ class ImageQualityIteratorTest extends TestCase
         $iterator = new ImageQualityIterator(1, 100, 0, 2.0, IteratorDirection::INCREASE);
 
         $i = 0;
-        while (!$iterator->iterate(fn (float $value) => $this->fakeButteraugliQuality($value))) {
+        while (!$iterator->iterate(fn (float $value): float => $this->fakeButteraugliQuality($value))) {
             $i++;
         }
         $this->assertEquals(7, $i);
@@ -106,11 +106,11 @@ class ImageQualityIteratorTest extends TestCase
 
         // return $part1 - $part2 + 2.59797;
 
-        return 0.000110559 * pow($quality, 2.75477) + 1.41258;
+        return 0.000110559 * $quality ** 2.75477 + 1.41258;
     }
 
     public function fakeButteraugliQuality(float $quality): float
     {
-        return 9.48925 - 0.199277 * pow($quality, 0.822);
+        return 9.48925 - 0.199277 * $quality ** 0.822;
     }
 }

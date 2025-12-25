@@ -298,7 +298,7 @@ class EncodeCommand extends Command
         $heifencCommand = [
             $this->heifencExecutable,
             '-q',
-            (int) $quality,
+            $quality,
             '--no-alpha',
             '-p',
             'preset=veryslow',

@@ -41,11 +41,7 @@ class ImageQualityIterator
         // Rounding goes up. So if we hit the max quality, we can't go any more precise.
         if ($value === $this->maxQuality) {
             // Depending on the direction, return the low or high value
-            if ($this->direction === IteratorDirection::DECREASE) {
-                $value = $this->minQuality;
-            } else {
-                $value = $this->maxQuality;
-            }
+            $value = $this->direction === IteratorDirection::DECREASE ? $this->minQuality : $this->maxQuality;
 
             if ($value !== $this->result) {
                 ($tester)($value);
